@@ -66,7 +66,22 @@ h1 em { color: var(--abu); }
 .premisa strong { color: var(--fg); font-weight: 500; }
 
 .main { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 32px; align-items: start; }
-@media (max-width: 860px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.finder { margin-bottom: 28px; }
+.finder .search input { margin-top: 10px; }
+.results { margin-top: 14px; }
+@media (max-width: 860px) {
+  .main { display: flex; flex-direction: column; gap: 24px; }
+  .main > section { display: contents; }
+  .check, .finder, .player, .lib { min-width: 0; margin-bottom: 0; }
+  .check { order: 1; }
+  .finder { order: 2; }
+  .player { order: 3; }
+  .lib { order: 4; }
+  .main .states { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .main .state { padding: 12px; }
+  .main .state span { font-size: 12.5px; }
+  .main .finder h3 { font-size: 22px; }
+}
 
 /* Panel de escucha */
 .player { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; display: grid; gap: 18px; }
@@ -236,11 +251,17 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
         </div>
       </div>
 
-      <h3>Tu biblioteca</h3>
-      <div class="search"><input id="q" type="search" placeholder="Busca: miedo, dinero, dormir…" aria-label="Buscar audios" autocomplete="off"></div>
-      <div class="needs" id="needs" role="group" aria-label="Necesidades frecuentes"></div>
-      <div class="tabs" id="tabs" role="tablist"></div>
-      <div class="list" id="list"></div>
+      <div class="finder">
+        <h3>O busca lo que necesitas</h3>
+        <div class="search"><input id="q" type="search" placeholder="Busca: miedo, dinero, dormir…" aria-label="Buscar audios" autocomplete="off"></div>
+        <div class="needs" id="needs" role="group" aria-label="Necesidades frecuentes"></div>
+        <div class="list results" id="results" hidden></div>
+      </div>
+      <div class="lib" id="lib">
+        <h3>Tu biblioteca</h3>
+        <div class="tabs" id="tabs" role="tablist"></div>
+        <div class="list" id="list"></div>
+      </div>
     </section>
   </div>
 
@@ -516,7 +537,7 @@ function renderResults() {
   const terms = norm(query).split(/\s+/).filter(Boolean);
   const hay = (t) => norm([t.name, t.desc, CATS[t.cat].name, t.band || "", t.tags || ""].join(" "));
   const items = TRACKS.concat(customs).filter(t => { const h = hay(t); return terms.every(w => h.includes(w)); });
-  const list = $("#list");
+  const list = $("#results");
   let h = '<div class="note">' + items.length + (items.length === 1 ? " resultado" : " resultados") + " para “" + esc(query) + '” · <button class="linkbtn" type="button" data-clear="1">Limpiar</button></div>';
   if (!items.length) h += '<div class="empty">Nada coincide. Prueba con otra palabra, por ejemplo estrés, dormir o dinero.</div>';
   items.forEach(t => {
@@ -529,7 +550,9 @@ function renderResults() {
 }
 
 function renderList() {
-  if (query) { renderResults(); return; }
+  const on = !!query;
+  $("#results").hidden = !on; $("#lib").hidden = on;
+  if (on) { renderResults(); return; }
   if (filter === "reto") { renderReto(); return; }
   if (filter === "mis") { renderMine(); return; }
   const items = TRACKS.filter(t => filter === "todas" ? t.cat !== "tono" : filter === "fav" ? favs.includes(t.id) : t.cat === (filter === "tonos" ? "tono" : filter));
@@ -563,6 +586,10 @@ function renderStates() {
   if (s) $("#recoText").textContent = s.msg;
 }
 
+function showPlayer() {
+  if (matchMedia("(max-width: 860px)").matches) $("#player").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function select(id, play) {
   cur = findTrack(id);
   minutes = cur.def;
@@ -570,7 +597,7 @@ function select(id, play) {
   document.querySelectorAll("[data-min]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === minutes)));
   if (!minutes) document.querySelector('[data-min="0"]').setAttribute("aria-pressed", "true");
   renderNow();
-  if (play) start(); else if (playing) start(); else setPlayUI();
+  if (play) { start(); showPlayer(); } else if (playing) start(); else setPlayUI();
 }
 
 /* ---------- Mis audios (se guardan en el navegador) ---------- */
@@ -722,6 +749,7 @@ function startReto(k) {
   store.set("fx_reto", reto);
   renderNow();
   start();
+  showPlayer();
 }
 function renderReto() {
   retoCheck();
@@ -777,7 +805,7 @@ document.querySelectorAll("[data-min]").forEach(b => b.addEventListener("click",
   if (audioEl) audioEl.loop = minutes !== -1;
   renderClock((performance.now() - startedAt) / 1000);
 }));
-$("#list").addEventListener("click", (e) => {
+function onCardClick(e) {
   if (e.target.closest("[data-clear]")) { setQuery(""); return; }
   const rs = e.target.closest("[data-slot]");
   if (rs) { startReto(rs.dataset.slot); return; }
@@ -796,7 +824,9 @@ $("#list").addEventListener("click", (e) => {
   }
   const c = e.target.closest("[data-id]");
   if (c) select(c.dataset.id, true);
-});
+}
+$("#list").addEventListener("click", onCardClick);
+$("#results").addEventListener("click", onCardClick);
 $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-tab]");
   if (b) { filter = b.dataset.tab; query = ""; $("#q").value = ""; renderNeeds(); renderTabs(); renderList(); }
