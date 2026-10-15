@@ -128,8 +128,13 @@ h3 { font: 400 26px/1.15 var(--f-display); margin: 0; }
 .state span { font-size: 13px; color: var(--muted); }
 .state:hover { border-color: var(--muted); }
 .state[aria-pressed="true"] { border-color: var(--fg); background: var(--surface-2); }
-.reco { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.reco p { margin: 0; flex: 1; min-width: 220px; font-size: 15px; }
+.reco { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; display: grid; gap: 12px; }
+.reco-top { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.reco-top p { margin: 0; flex: 1; min-width: 220px; font-size: 15px; }
+.reco .why { margin: 0; font-size: 14px; color: var(--muted); }
+.reco .alts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.reco .alts .lbl { font: 500 11px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.reco .alts-list { display: flex; gap: 8px; flex-wrap: wrap; }
 .reco .go { background: var(--fg); color: var(--bg); border: 0; border-radius: 999px; padding: 9px 18px; font-weight: 600; font-size: 14px; }
 
 /* Biblioteca */
@@ -246,8 +251,12 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
         <h3>¿Cómo está tu cuerpo ahora?</h3>
         <div class="states" id="states"></div>
         <div class="reco" id="reco" hidden>
-          <p id="recoText"></p>
-          <button class="go" id="recoGo" type="button">Escuchar ahora</button>
+          <div class="reco-top">
+            <p id="recoText"></p>
+            <button class="go" id="recoGo" type="button">Escuchar ahora</button>
+          </div>
+          <p class="why" id="recoWhy"></p>
+          <div class="alts"><span class="lbl">Otras opciones</span><span class="alts-list" id="recoAlts"></span></div>
         </div>
       </div>
 
@@ -315,10 +324,18 @@ const TRACKS = [
 ];
 
 const STATES = [
-  { id: "tenso", t: "Acelerado o tenso", s: "Mandíbula apretada, pecho agitado", track: "exhala", msg: "Tu cuerpo pide bajar el ritmo antes de pensar en nada más. Empieza con Exhala larga." },
-  { id: "disperso", t: "Disperso", s: "Me cuesta sostener una tarea", track: "enfoque", msg: "Una frecuencia beta baja ayuda a mantener una sola cosa en la mente. Prueba Enfoque dorado." },
-  { id: "escasez", t: "Con sensación de escasez", s: "Preocupación por dinero o logros", track: "merecimiento", msg: "Primero regula el cuerpo, después replantea el plan. Merecimiento acompaña ese cambio." },
-  { id: "agotado", t: "Agotado, no duermo", s: "Mente encendida de noche", track: "descenso", msg: "Descenso delta baja el pulso poco a poco mientras tú te sueltas. Usa audífonos y volumen bajo." }
+  { id: "tenso", t: "Acelerado o tenso", s: "Mandíbula apretada, pecho agitado", track: "exhala", msg: "Tu cuerpo pide bajar el ritmo antes de pensar en nada más. Empieza con Exhala larga.",
+    why: "Exhala larga te guía a inhalar 4 segundos y exhalar 8, sobre un pulso alfa suave de 8 Hz. Alargar la exhalación es una técnica conocida para bajar el pulso. Los tonos 396 Hz (tradición: soltar miedo y culpa) y 174 Hz (tradición: aliviar la tensión física) son alternativas más suaves.",
+    alts: ["hz396", "hz174", "anclaje"] },
+  { id: "disperso", t: "Disperso", s: "Me cuesta sostener una tarea", track: "enfoque", msg: "Una frecuencia beta baja ayuda a mantener una sola cosa en la mente. Prueba Enfoque dorado.",
+    why: "Enfoque dorado usa un pulso de 14 Hz (beta baja), el rango que se asocia con la atención despierta, sobre un fondo estable y sin sobresaltos. Ponlo a volumen cómodo mientras trabajas. Si prefieres algo sin pulso, Lluvia tibia es una textura de fondo, y la 528 Hz (tradición: transformación) es un tono continuo.",
+    alts: ["hz528", "lluvia", "apertura"] },
+  { id: "escasez", t: "Con sensación de escasez", s: "Preocupación por dinero o logros", track: "merecimiento", msg: "Primero regula el cuerpo, después replantea el plan. Merecimiento acompaña ese cambio.",
+    why: "La preocupación por dinero suele venir con tensión en el cuerpo. Merecimiento va a un ritmo lento (7,5 Hz, theta-alfa) con respiración 5-7 para soltar primero esa tensión; después piensa o escribe tu plan con calma. La 888 Hz es la frecuencia de abundancia de la tradición popular.",
+    alts: ["hz888", "apertura", "exhala"] },
+  { id: "agotado", t: "Agotado, no duermo", s: "Mente encendida de noche", track: "descenso", msg: "Descenso delta baja el pulso poco a poco mientras tú te sueltas. Usa audífonos y volumen bajo.",
+    why: "Descenso delta baja el pulso de 6 a 2 Hz durante 20 minutos, hacia el rango asociado al sueño profundo, con ruido marrón y respiración 4-8. Ponlo acostado y bajo, y déjalo sonar. Si prefieres sin pulsos, Marea lenta es solo textura; Noche profunda es más grave y lenta; y la 963 Hz es la alternativa de la tradición popular (conexión y expansión).",
+    alts: ["noche", "marea", "hz963"] }
 ];
 
 const $ = (s) => document.querySelector(s);
@@ -594,7 +611,12 @@ function renderStates() {
   const reco = $("#reco");
   const s = STATES.find(x => x.id === pick);
   reco.hidden = !s;
-  if (s) $("#recoText").textContent = s.msg;
+  if (s) {
+    $("#recoText").textContent = s.msg;
+    $("#recoWhy").textContent = s.why;
+    $("#recoGo").textContent = "Escuchar " + findTrack(s.track).name;
+    $("#recoAlts").innerHTML = s.alts.map(id => '<button class="chip" type="button" data-alt="' + id + '">' + findTrack(id).name + "</button>").join("");
+  }
 }
 
 function showPlayer() {
@@ -849,6 +871,7 @@ $("#states").addEventListener("click", (e) => {
   if (b) { pick = b.dataset.state; renderStates(); select(STATES.find(s => s.id === pick).track, false); }
 });
 $("#recoGo").addEventListener("click", () => select(STATES.find(s => s.id === pick).track, true));
+$("#recoAlts").addEventListener("click", (e) => { const b = e.target.closest("[data-alt]"); if (b) select(b.dataset.alt, true); });
 $("#themeBtn").addEventListener("click", () => {
   const r = document.documentElement;
   const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
