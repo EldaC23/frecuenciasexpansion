@@ -134,6 +134,24 @@ h3 { font: 400 26px/1.15 var(--f-display); margin: 0; }
 .usage dt { font: 500 11px/1.6 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
 .usage dd { margin: 0; color: var(--muted); }
 .linkbtn { background: transparent; border: 0; padding: 0; color: var(--fg); text-decoration: underline; font-size: inherit; }
+.reto-head { display: grid; gap: 4px; margin-bottom: 14px; }
+.reto-head .big { font: 400 40px/1.05 var(--f-display); }
+.reto-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.days { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; margin: 4px 0 16px; }
+.day { border: 1px solid var(--line); border-radius: 10px; padding: 7px 0 8px; text-align: center; font: 500 12px/1 var(--f-mono); color: var(--muted); display: grid; gap: 6px; justify-items: center; }
+.day i { display: flex; gap: 3px; }
+.day i b { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.day i b.on { background: var(--ton); }
+.day.ok { color: var(--fg); background: var(--surface-2); }
+.day.now { border-color: var(--fg); color: var(--fg); }
+.slot-state { font: 500 12px/1.2 var(--f-mono); letter-spacing: .04em; text-align: right; color: var(--muted); width: 74px; }
+.slot-state.done { color: var(--c); }
+.slot-state.now { color: var(--fg); }
+.reto-note { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px; }
+.reto-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.reto-btn { background: var(--fg); color: var(--bg); border: 0; border-radius: 999px; padding: 11px 20px; font-weight: 600; font-size: 15px; }
+.reto-btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; font-size: 14px; padding: 8px 14px; }
+.reto-btn.warn { background: var(--mis); color: var(--on-accent); border-color: var(--mis); }
 .note { font-size: 13.5px; color: var(--muted); background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
 .adder { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
 .addbtn { background: var(--mis); color: var(--on-accent); border-radius: 999px; padding: 11px 20px; font-weight: 600; font-size: 15px; cursor: pointer; }
@@ -189,6 +207,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
         <button class="play" id="playBtn" type="button">▶ Escuchar</button>
         <div class="row" role="group" aria-label="Duración">
           <span class="lbl">Sesión</span>
+          <button class="chip" type="button" data-min="6" aria-pressed="false">6 min</button>
           <button class="chip" type="button" data-min="10" aria-pressed="false">10 min</button>
           <button class="chip" type="button" data-min="20" aria-pressed="true">20 min</button>
           <button class="chip" type="button" data-min="45" aria-pressed="false">45 min</button>
@@ -218,7 +237,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
       </div>
 
       <h3>Tu biblioteca</h3>
-      <div class="search"><input id="q" type="search" placeholder="Busca por lo que necesitas: miedo, dinero, dormir…" aria-label="Buscar audios" autocomplete="off"></div>
+      <div class="search"><input id="q" type="search" placeholder="Busca: miedo, dinero, dormir…" aria-label="Buscar audios" autocomplete="off"></div>
       <div class="needs" id="needs" role="group" aria-label="Necesidades frecuentes"></div>
       <div class="tabs" id="tabs" role="tablist"></div>
       <div class="list" id="list"></div>
@@ -511,6 +530,7 @@ function renderResults() {
 
 function renderList() {
   if (query) { renderResults(); return; }
+  if (filter === "reto") { renderReto(); return; }
   if (filter === "mis") { renderMine(); return; }
   const items = TRACKS.filter(t => filter === "todas" ? t.cat !== "tono" : filter === "fav" ? favs.includes(t.id) : t.cat === (filter === "tonos" ? "tono" : filter));
   const list = $("#list");
@@ -531,7 +551,7 @@ function renderList() {
 }
 
 function renderTabs() {
-  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["tonos", "Tonos puros"], ["mis", "Mis audios"], ["fav", "Favoritas"]];
+  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["tonos", "Tonos puros"], ["mis", "Mis audios"], ["reto", "Reto 3-6-9"], ["fav", "Favoritas"]];
   $("#tabs").innerHTML = tabs.map(([id, n]) => '<button class="chip" type="button" role="tab" data-tab="' + id + '" aria-selected="' + (filter === id && !query) + '">' + n + "</button>").join("");
 }
 
@@ -653,6 +673,90 @@ $("#list").addEventListener("keydown", (e) => {
   if (e.key === "Escape") { editingId = null; renderList(); }
 });
 
+/* ---------- Reto 3-6-9: 3 sesiones al día, 6 minutos, 9 días ---------- */
+const RETO_DAYS = 9, RETO_MIN = 6, RETO_PER_DAY = 3;
+const SLOTS = [
+  { k: "m", name: "Mañana", sub: "Activarte", track: "apertura", cat: "abundancia" },
+  { k: "t", name: "Tarde", sub: "Calma", track: "exhala", cat: "bienestar" },
+  { k: "n", name: "Noche", sub: "Relajación", track: "descenso", cat: "sueno" }
+];
+let reto = store.get("fx_reto", null);
+let retoConfirm = false;
+const parseKey = (k) => { const a = k.split("-").map(Number); return new Date(a[0], a[1] - 1, a[2]); };
+const addDays = (k, n) => { const d = parseKey(k); d.setDate(d.getDate() + n); return dayKey(d); };
+const daysBetween = (a, b) => Math.round((parseKey(b) - parseKey(a)) / 864e5);
+const doneCount = (day) => (reto && reto.done[day]) ? Object.keys(reto.done[day]).length : 0;
+const longDay = (k) => parseKey(k).toLocaleDateString("es", { day: "numeric", month: "long" });
+function retoCheck() {
+  if (!reto || !reto.start) return;
+  const today = dayKey(), passed = Math.min(daysBetween(reto.start, today), RETO_DAYS);
+  for (let i = 0; i < passed; i++) {
+    const day = addDays(reto.start, i);
+    if (doneCount(day) < RETO_PER_DAY) {
+      reto = { start: today, done: {}, restarts: (reto.restarts || 0) + 1,
+        note: "El reto volvió al día 1: el " + longDay(day) + " quedaron " + doneCount(day) + " de " + RETO_PER_DAY + " sesiones." };
+      store.set("fx_reto", reto);
+      return;
+    }
+  }
+}
+function retoDone() {
+  if (!reto || !reto.start) return false;
+  for (let i = 0; i < RETO_DAYS; i++) if (doneCount(addDays(reto.start, i)) < RETO_PER_DAY) return false;
+  return true;
+}
+function retoBegin() {
+  reto = { start: dayKey(), done: {}, restarts: reto ? (reto.restarts || 0) : 0, note: "" };
+  retoConfirm = false; store.set("fx_reto", reto); renderList();
+}
+function retoSlotNow() { const h = new Date().getHours(); return h < 12 ? "m" : h < 18 ? "t" : "n"; }
+function startReto(k) {
+  retoCheck();
+  if (!reto || !reto.start || retoDone()) { renderList(); return; }
+  const slot = SLOTS.find(x => x.k === k), today = dayKey();
+  cur = findTrack(slot.track); minutes = RETO_MIN;
+  $("#onceChip").hidden = true;
+  document.querySelectorAll("[data-min]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === minutes)));
+  (reto.done[today] = reto.done[today] || {})[k] = 1;
+  reto.note = "";
+  store.set("fx_reto", reto);
+  renderNow();
+  start();
+}
+function renderReto() {
+  retoCheck();
+  const list = $("#list");
+  const intro = "3 veces al día · 6 minutos · 9 días. Mañana: " + findTrack("apertura").name + ". Tarde: " + findTrack("exhala").name + ". Noche: " + findTrack("descenso").name + ". Si un día queda incompleto, el reto vuelve al día 1.";
+  let h = "";
+  if (reto && reto.note) h += '<div class="reto-note">' + esc(reto.note) + "</div>";
+  if (!reto || !reto.start) {
+    h += '<div class="reto-head"><div class="big">Reto 3-6-9</div><p>' + esc(intro) + '</p></div><div class="reto-actions"><button class="reto-btn" type="button" data-retostart="1">Empezar el reto hoy</button></div>';
+    list.innerHTML = h; return;
+  }
+  const today = dayKey(), done = retoDone();
+  const dayNo = Math.min(daysBetween(reto.start, today) + 1, RETO_DAYS);
+  h += '<div class="reto-head"><div class="big">' + (done ? "¡Reto completo!" : "Día " + dayNo + " de " + RETO_DAYS) + "</div><p>" +
+    (done ? "Completaste los 9 días con las 3 sesiones." : "Hoy llevas " + doneCount(today) + " de " + RETO_PER_DAY + " sesiones.") +
+    ((reto.restarts) ? " Reinicios: " + reto.restarts + "." : "") + "</p></div>";
+  h += '<div class="days" aria-label="Los 9 días del reto">';
+  for (let i = 0; i < RETO_DAYS; i++) {
+    const day = addDays(reto.start, i), n = doneCount(day);
+    h += '<div class="day' + (n >= RETO_PER_DAY ? " ok" : "") + (day === today && !done ? " now" : "") + '"><span>' + (i + 1) + "</span><i>" + [0, 1, 2].map(j => '<b class="' + (j < n ? "on" : "") + '"></b>').join("") + "</i></div>";
+  }
+  h += "</div>";
+  if (!done) {
+    const now = retoSlotNow(), got = reto.done[today] || {};
+    SLOTS.forEach(sl => {
+      const t = findTrack(sl.track), ok = !!got[sl.k];
+      h += '<div style="margin-bottom:10px"><button class="card" type="button" data-slot="' + sl.k + '" data-cat="' + sl.cat + '"' + ((cur.id === t.id && playing && minutes === RETO_MIN) ? ' aria-current="true"' : "") + '><span class="dot">6 min</span><span><h4>' + sl.name + " · " + sl.sub + "</h4><p>" + esc(t.name) + '</p></span><span class="slot-state' + (ok ? " done" : sl.k === now ? " now" : "") + '">' + (ok ? "✓ Hecha" : sl.k === now ? "Toca ahora" : "Empezar") + "</span></button></div>";
+    });
+  }
+  h += '<div class="reto-actions">' + (done ? '<button class="reto-btn" type="button" data-retostart="1">Empezar otro reto</button>' :
+    (retoConfirm ? '<button class="reto-btn warn" type="button" data-retoreset="1">Sí, reiniciar</button><button class="reto-btn ghost" type="button" data-retocancel="1">Cancelar</button>' :
+      '<button class="reto-btn ghost" type="button" data-retoreset="1">Reiniciar reto</button>')) + "</div>";
+  list.innerHTML = h;
+}
+
 /* ---------- Events ---------- */
 function setQuery(v) { query = v.trim(); $("#q").value = v; renderNeeds(); renderTabs(); renderList(); }
 $("#q").addEventListener("input", (e) => setQuery(e.target.value));
@@ -675,6 +779,11 @@ document.querySelectorAll("[data-min]").forEach(b => b.addEventListener("click",
 }));
 $("#list").addEventListener("click", (e) => {
   if (e.target.closest("[data-clear]")) { setQuery(""); return; }
+  const rs = e.target.closest("[data-slot]");
+  if (rs) { startReto(rs.dataset.slot); return; }
+  if (e.target.closest("[data-retostart]")) { retoBegin(); return; }
+  if (e.target.closest("[data-retocancel]")) { retoConfirm = false; renderList(); return; }
+  if (e.target.closest("[data-retoreset]")) { if (retoConfirm) retoBegin(); else { retoConfirm = true; renderList(); } return; }
   const ren = e.target.closest("[data-ren]"), del = e.target.closest("[data-del]"), sv = e.target.closest("[data-save]");
   if (ren) { editingId = ren.dataset.ren; delId = null; renderList(); return; }
   if (sv) { commitRename(sv.dataset.save); return; }
