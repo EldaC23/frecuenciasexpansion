@@ -27,6 +27,7 @@
   --bien: #5fc6b4;
   --sue: #9a8cf0;
   --mis: #e58fb0;
+  --ton: #7fb7e6;
   --on-accent: #0d1417;
   --accent: var(--bien);
   --f-display: "Instrument Serif", Georgia, serif;
@@ -37,13 +38,13 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #eef3f2; --surface: #ffffff; --surface-2: #e4edec; --line: #cfdcdb;
-    --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6; --mis: #a23a68;
+    --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6; --mis: #a23a68; --ton: #1f6aa8;
     --on-accent: #ffffff; color-scheme: light;
   }
 }
 :root[data-theme="light"] {
   --bg: #eef3f2; --surface: #ffffff; --surface-2: #e4edec; --line: #cfdcdb;
-  --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6; --mis: #a23a68;
+  --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6; --mis: #a23a68; --ton: #1f6aa8;
   --on-accent: #ffffff; color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -74,6 +75,7 @@ h1 em { color: var(--abu); }
 .player[data-cat="bienestar"] { --accent: var(--bien); }
 .player[data-cat="sueno"] { --accent: var(--sue); }
 .player[data-cat="mis"] { --accent: var(--mis); }
+.player[data-cat="tono"] { --accent: var(--ton); }
 .now { display: grid; gap: 4px; text-align: center; }
 .now .cat { font: 500 12px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 .now h2 { font: 400 32px/1.1 var(--f-display); margin: 0; }
@@ -123,6 +125,8 @@ h3 { font: 400 26px/1.15 var(--f-display); margin: 0; }
 .card[data-cat="bienestar"] { --c: var(--bien); }
 .card[data-cat="sueno"] { --c: var(--sue); }
 .card[data-cat="mis"] { --c: var(--mis); }
+.card[data-cat="tono"] { --c: var(--ton); }
+.note { font-size: 13.5px; color: var(--muted); background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
 .adder { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
 .addbtn { background: var(--mis); color: var(--on-accent); border-radius: 999px; padding: 11px 20px; font-weight: 600; font-size: 15px; cursor: pointer; }
 .addbtn:hover { filter: brightness(1.08); }
@@ -185,7 +189,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
         </div>
         <div class="row">
           <label class="lbl" for="vol">Volumen</label>
-          <input id="vol" type="range" min="0" max="100" value="55">
+          <input id="vol" type="range" min="0" max="100" value="80">
         </div>
       </div>
       <div class="stats">
@@ -222,7 +226,8 @@ const CATS = {
   abundancia: { name: "Abundancia", short: "ABU" },
   bienestar: { name: "Bienestar", short: "BIE" },
   sueno: { name: "Sueño", short: "SUE" },
-  mis: { name: "Mis audios", short: "MIS" }
+  mis: { name: "Mis audios", short: "MIS" },
+  tono: { name: "Tonos puros", short: "HZ" }
 };
 
 // carrier: tono base en Hz; beat: diferencia entre oído izquierdo y derecho (Hz); beatTo/ramp: baja el pulso con el tiempo.
@@ -244,7 +249,17 @@ const TRACKS = [
   { id: "noche", cat: "sueno", name: "Noche profunda", desc: "Graves lentos y ruido marrón. Déjalo sonando hasta dormirte.",
     carrier: 90, beat: 3, beatTo: 1.5, ramp: 30, band: "Delta", drones: [45, 60, 90], noise: { type: "brown", cutoff: 300, gain: 0.14, lfo: 0.05 }, breath: [4, 8], def: 45 },
   { id: "marea", cat: "sueno", name: "Marea lenta", desc: "Olas de ruido marrón que suben y bajan cada doce segundos.",
-    carrier: 0, beat: 0, band: "Textura", drones: [55], noise: { type: "brown", cutoff: 650, gain: 0.26, lfo: 0.085, deep: true }, breath: [4, 8], def: 0 }
+    carrier: 0, beat: 0, band: "Textura", drones: [55], noise: { type: "brown", cutoff: 650, gain: 0.26, lfo: 0.085, deep: true }, breath: [4, 8], def: 0 },
+  { id: "hz432", cat: "tono", name: "432 Hz", desc: "Vibraciones positivas.", hz: 432, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz888", cat: "tono", name: "888 Hz", desc: "Frecuencia de abundancia.", hz: 888, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz174", cat: "tono", name: "174 Hz", desc: "Calma el cuerpo y alivia la tensión física.", hz: 174, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz285", cat: "tono", name: "285 Hz", desc: "Restablece el equilibrio y la confianza.", hz: 285, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz417", cat: "tono", name: "417 Hz", desc: "Favorece el cambio y la liberación emocional.", hz: 417, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz528", cat: "tono", name: "528 Hz", desc: "Frecuencia del amor y la apertura del corazón.", hz: 528, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz639", cat: "tono", name: "639 Hz", desc: "Fortalece los vínculos y las relaciones.", hz: 639, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz741", cat: "tono", name: "741 Hz", desc: "Purifica la energía y libera bloqueos.", hz: 741, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz852", cat: "tono", name: "852 Hz", desc: "Despierta la intuición.", hz: 852, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz963", cat: "tono", name: "963 Hz", desc: "Promueve la expansión y la conexión espiritual.", hz: 963, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 }
 ];
 
 const STATES = [
@@ -271,7 +286,8 @@ let pick = null;
 
 /* ---------- Audio ---------- */
 let ctx = null, master = null, nodes = [], playing = false, startedAt = 0, endAt = 0, elapsedBase = 0;
-let volume = 0.55, audioEl = null, audioURL = null;
+const GAIN = 1.8;
+let volume = 0.8, audioEl = null, audioURL = null;
 
 function noiseBuffer(c, type) {
   const len = c.sampleRate * 6, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -295,9 +311,22 @@ function buildGraph(t) {
   ctx = new AC();
   master = ctx.createGain();
   master.gain.value = 0;
-  master.connect(ctx.destination);
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -10; comp.knee.value = 12; comp.ratio.value = 12; comp.attack.value = 0.003; comp.release.value = 0.25;
+  master.connect(comp); comp.connect(ctx.destination);
   nodes = [];
   const now = ctx.currentTime;
+
+  if (t.hz) {
+    [[1, 0, 0.14], [1, 4, 0.10], [0.5, 0, 0.09], [2, 0, 0.03]].forEach(([m, cents, a]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain();
+      o.type = "sine"; o.frequency.value = t.hz * m; o.detune.value = cents;
+      g.gain.value = a; l.frequency.value = 0.05 + m * 0.03; lg.gain.value = a * 0.3;
+      l.connect(lg).connect(g.gain);
+      o.connect(g).connect(master); o.start(); l.start();
+      nodes.push(o, l);
+    });
+  }
 
   if (t.carrier && t.beat) {
     [-1, 1].forEach((side) => {
@@ -344,7 +373,7 @@ function start() {
   else {
     buildGraph(cur);
     ctx.resume();
-    master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 1.2);
+    master.gain.setTargetAtTime(volume * GAIN, ctx.currentTime, 1.2);
   }
   playing = true;
   startedAt = performance.now();
@@ -435,26 +464,26 @@ function renderNow() {
 
 function renderList() {
   if (filter === "mis") { renderMine(); return; }
-  const items = TRACKS.filter(t => filter === "todas" ? true : filter === "fav" ? favs.includes(t.id) : t.cat === filter);
+  const items = TRACKS.filter(t => filter === "todas" ? t.cat !== "tono" : filter === "fav" ? favs.includes(t.id) : t.cat === (filter === "tonos" ? "tono" : filter));
   const list = $("#list");
-  list.innerHTML = "";
+  list.innerHTML = filter === "tonos" ? '<div class="note">Tonos puros de tradición popular. No tienen base científica comprobada: úsalos como sonidos para relajarte o concentrarte. Con audífonos se aprecian mejor los graves.</div>' : "";
   if (!items.length) { list.innerHTML = '<div class="empty">Aún no tienes favoritas. Toca el corazón en cualquier audio para guardarlo aquí.</div>'; return; }
   items.forEach(t => {
     const wrap = document.createElement("div");
     wrap.style.position = "relative";
-    const hz = t.beat ? (t.beatTo ? t.beat + "→" + t.beatTo : String(t.beat).replace(".", ",")) + " Hz" : "Textura";
+    const hz = t.hz ? t.hz + " Hz" : t.beat ? (t.beatTo ? t.beat + "→" + t.beatTo : String(t.beat).replace(".", ",")) + " Hz" : "Textura";
     wrap.innerHTML =
       '<button class="card" type="button" data-id="' + t.id + '" data-cat="' + t.cat + '"' + (t.id === cur.id ? ' aria-current="true"' : "") + ">" +
       '<span class="dot">' + hz + "</span>" +
       "<span><h4>" + t.name + "</h4><p>" + t.desc + '</p><div class="meta">' + CATS[t.cat].name + " · " + t.band + " · " + (t.def ? t.def + " min sugeridos" : "sin fin") + "</div></span>" +
       '<span style="width:40px"></span></button>' +
-      '<button class="fav" type="button" data-fav="' + t.id + '" data-cat="' + t.cat + '" aria-label="Guardar ' + t.name + ' en favoritas" aria-pressed="' + favs.includes(t.id) + '" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);--c:var(--' + ({ abundancia: "abu", bienestar: "bien", sueno: "sue" })[t.cat] + ')">' + (favs.includes(t.id) ? "♥" : "♡") + "</button>";
+      '<button class="fav" type="button" data-fav="' + t.id + '" data-cat="' + t.cat + '" aria-label="Guardar ' + t.name + ' en favoritas" aria-pressed="' + favs.includes(t.id) + '" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);--c:var(--' + ({ abundancia: "abu", bienestar: "bien", sueno: "sue", tono: "ton" })[t.cat] + ')">' + (favs.includes(t.id) ? "♥" : "♡") + "</button>";
     list.appendChild(wrap);
   });
 }
 
 function renderTabs() {
-  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["mis", "Mis audios"], ["fav", "Favoritas"]];
+  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["tonos", "Tonos puros"], ["mis", "Mis audios"], ["fav", "Favoritas"]];
   $("#tabs").innerHTML = tabs.map(([id, n]) => '<button class="chip" type="button" role="tab" data-tab="' + id + '" aria-selected="' + (filter === id) + '">' + n + "</button>").join("");
 }
 
@@ -580,7 +609,7 @@ $("#list").addEventListener("keydown", (e) => {
 $("#playBtn").addEventListener("click", () => { playing ? stop() : start(); });
 $("#vol").addEventListener("input", (e) => {
   volume = e.target.value / 100;
-  if (ctx && master) master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 0.1);
+  if (ctx && master) master.gain.setTargetAtTime(volume * GAIN, ctx.currentTime, 0.1);
   if (audioEl) audioEl.volume = volume;
 });
 document.querySelectorAll("[data-min]").forEach(b => b.addEventListener("click", () => {
