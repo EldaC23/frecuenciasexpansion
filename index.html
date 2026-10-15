@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Frecuencias de Expansión</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: panel de escucha fijo a la izquierda (orbe de respiración + controles), biblioteca de audios a la derecha. En móvil se apilan. */
+:root {
+  --bg: #0d1417;
+  --surface: #142026;
+  --surface-2: #1a2a31;
+  --line: #243238;
+  --fg: #e6eeee;
+  --muted: #8fa3a6;
+  --abu: #e0b34f;
+  --bien: #5fc6b4;
+  --sue: #9a8cf0;
+  --on-accent: #0d1417;
+  --accent: var(--bien);
+  --f-display: "Instrument Serif", Georgia, serif;
+  --f-body: "Hanken Grotesk", system-ui, sans-serif;
+  --f-mono: "DM Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef3f2; --surface: #ffffff; --surface-2: #e4edec; --line: #cfdcdb;
+    --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6;
+    --on-accent: #ffffff; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eef3f2; --surface: #ffffff; --surface-2: #e4edec; --line: #cfdcdb;
+  --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6;
+  --on-accent: #ffffff; color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font: 400 16px/1.55 var(--f-body);
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+header { display: grid; gap: 14px; margin-bottom: 28px; max-width: 760px; }
+.kicker { font: 500 12px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 400 clamp(40px, 7vw, 68px)/1 var(--f-display); margin: 0; text-wrap: balance; }
+h1 em { color: var(--abu); }
+.premisa { color: var(--muted); font-size: 17px; margin: 0; max-width: 62ch; }
+.premisa strong { color: var(--fg); font-weight: 500; }
+
+.main { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 860px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+/* Panel de escucha */
+.player { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; display: grid; gap: 18px; }
+@media (max-width: 860px) { .player { position: static; } }
+.player[data-cat="abundancia"] { --accent: var(--abu); }
+.player[data-cat="bienestar"] { --accent: var(--bien); }
+.player[data-cat="sueno"] { --accent: var(--sue); }
+.now { display: grid; gap: 4px; text-align: center; }
+.now .cat { font: 500 12px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.now h2 { font: 400 32px/1.1 var(--f-display); margin: 0; }
+.now p { margin: 0; color: var(--muted); font-size: 14px; }
+
+.orb-wrap { display: grid; place-items: center; height: 230px; position: relative; }
+.orb {
+  width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--accent) 70%, #fff) 0%, var(--accent) 38%, color-mix(in srgb, var(--accent) 35%, var(--bg)) 100%);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+  transform: scale(.7); will-change: transform;
+}
+.ring { position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 1px dashed var(--line); }
+.orb-label { position: absolute; font: 500 13px/1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--on-accent); text-shadow: none; }
+.clock { text-align: center; font: 500 15px/1 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.controls { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.play { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 999px; padding: 15px 20px; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.play:hover { filter: brightness(1.08); }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row .lbl { font: 500 12px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); min-width: 70px; }
+.chip { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 14px; color: var(--fg); }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"], .chip[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 20%, transparent); border-color: var(--accent); color: var(--fg); }
+input[type=range] { flex: 1; min-width: 120px; accent-color: var(--accent); }
+.stats { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.stats b { color: var(--fg); font: 500 14px var(--f-mono); }
+
+/* Chequeo */
+.check { margin-bottom: 28px; display: grid; gap: 12px; }
+h3 { font: 400 26px/1.15 var(--f-display); margin: 0; }
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.state { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 2px; }
+.state b { font-weight: 600; }
+.state span { font-size: 13px; color: var(--muted); }
+.state:hover { border-color: var(--muted); }
+.state[aria-pressed="true"] { border-color: var(--fg); background: var(--surface-2); }
+.reco { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.reco p { margin: 0; flex: 1; min-width: 220px; font-size: 15px; }
+.reco .go { background: var(--fg); color: var(--bg); border: 0; border-radius: 999px; padding: 9px 18px; font-weight: 600; font-size: 14px; }
+
+/* Biblioteca */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 16px; }
+.list { display: grid; gap: 10px; }
+.card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; text-align: left; width: 100%; }
+.card[data-cat="abundancia"] { --c: var(--abu); }
+.card[data-cat="bienestar"] { --c: var(--bien); }
+.card[data-cat="sueno"] { --c: var(--sue); }
+.card:hover { border-color: var(--muted); }
+.card[aria-current="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 10%, var(--surface)); }
+.dot { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); font: 500 11px/1 var(--f-mono); text-align: center; }
+.card h4 { margin: 0; font: 600 16px/1.3 var(--f-body); }
+.card p { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
+.meta { font: 400 11.5px/1.3 var(--f-mono); color: var(--muted); margin-top: 6px; letter-spacing: .02em; }
+.fav { background: transparent; border: 0; padding: 8px; font-size: 20px; line-height: 1; color: var(--muted); border-radius: 50%; }
+.fav[aria-pressed="true"] { color: var(--c); }
+.empty { color: var(--muted); padding: 24px 0; }
+
+footer { margin-top: 36px; font-size: 13px; color: var(--muted); max-width: 70ch; display: grid; gap: 8px; }
+.theme { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; justify-self: start; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .orb { transition: none; } }
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Biblioteca de audio diaria</div>
+    <h1>Frecuencias de <em>Expansión</em></h1>
+    <p class="premisa">Tu mente puede tener el mapa correcto y aun así sabotearte si tu cuerpo sigue vibrando en estrés. <strong>Regula tu sistema nervioso, sostén tu enfoque y sal del modo supervivencia</strong>: abundancia, bienestar y sueño, en un solo lugar.</p>
+  </header>
+
+  <div class="main">
+    <aside class="player" id="player" data-cat="bienestar" aria-label="Reproductor">
+      <div class="now">
+        <div class="cat" id="nowCat">Bienestar</div>
+        <h2 id="nowTitle">Exhala larga</h2>
+        <p id="nowDesc"></p>
+      </div>
+      <div class="orb-wrap">
+        <div class="ring"></div>
+        <div class="orb" id="orb"></div>
+        <div class="orb-label" id="orbLabel">Listo</div>
+      </div>
+      <div class="clock" id="clock">20:00</div>
+      <div class="controls">
+        <button class="play" id="playBtn" type="button">▶ Escuchar</button>
+        <div class="row" role="group" aria-label="Duración">
+          <span class="lbl">Sesión</span>
+          <button class="chip" type="button" data-min="10" aria-pressed="false">10 min</button>
+          <button class="chip" type="button" data-min="20" aria-pressed="true">20 min</button>
+          <button class="chip" type="button" data-min="45" aria-pressed="false">45 min</button>
+          <button class="chip" type="button" data-min="0" aria-pressed="false">Sin fin</button>
+        </div>
+        <div class="row">
+          <label class="lbl" for="vol">Volumen</label>
+          <input id="vol" type="range" min="0" max="100" value="55">
+        </div>
+      </div>
+      <div class="stats">
+        <span>Hoy <b id="todayMin">0 min</b></span>
+        <span>Racha <b id="streak">0 días</b></span>
+      </div>
+    </aside>
+
+    <section aria-label="Biblioteca">
+      <div class="check">
+        <h3>¿Cómo está tu cuerpo ahora?</h3>
+        <div class="states" id="states"></div>
+        <div class="reco" id="reco" hidden>
+          <p id="recoText"></p>
+          <button class="go" id="recoGo" type="button">Escuchar ahora</button>
+        </div>
+      </div>
+
+      <h3>Tu biblioteca</h3>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+
+  <footer>
+    <span>Los audios se generan en tu navegador con tonos puros y ruido suave; no son grabaciones. Los pulsos binaurales funcionan con audífonos estéreo.</span>
+    <span>Es una herramienta de relajación, no un tratamiento médico. Si tienes epilepsia, marcapasos o una condición diagnosticada, consulta a tu profesional antes de usarla. Baja el volumen si algo te incomoda.</span>
+    <button class="theme" id="themeBtn" type="button">Cambiar tema</button>
+  </footer>
+</div>
+
+<script>
+const CATS = {
+  abundancia: { name: "Abundancia", short: "ABU" },
+  bienestar: { name: "Bienestar", short: "BIE" },
+  sueno: { name: "Sueño", short: "SUE" }
+};
+
+// carrier: tono base en Hz; beat: diferencia entre oído izquierdo y derecho (Hz); beatTo/ramp: baja el pulso con el tiempo.
+const TRACKS = [
+  { id: "apertura", cat: "abundancia", name: "Apertura", desc: "Para empezar el día con el pecho abierto y la atención suave.",
+    carrier: 200, beat: 10, band: "Alfa", drones: [132, 198, 264], noise: { type: "pink", cutoff: 900, gain: 0.05, lfo: 0.07 }, breath: [5, 5], def: 20 },
+  { id: "enfoque", cat: "abundancia", name: "Enfoque dorado", desc: "Una sola tarea, sin prisa. Atención sostenida sin tensión.",
+    carrier: 220, beat: 14, band: "Beta baja", drones: [110, 165], noise: { type: "pink", cutoff: 1400, gain: 0.04, lfo: 0.05 }, breath: [4, 6], def: 45 },
+  { id: "merecimiento", cat: "abundancia", name: "Merecimiento", desc: "Para soltar la sensación de que nunca alcanza.",
+    carrier: 180, beat: 7.5, band: "Theta-alfa", drones: [144, 216, 288], noise: { type: "brown", cutoff: 500, gain: 0.07, lfo: 0.06 }, breath: [5, 7], def: 20 },
+  { id: "exhala", cat: "bienestar", name: "Exhala larga", desc: "Para bajar el ritmo cuando vas acelerado. La exhala dura el doble.",
+    carrier: 150, beat: 8, band: "Alfa", drones: [75, 112.5], noise: { type: "brown", cutoff: 420, gain: 0.12, lfo: 0.1 }, breath: [4, 8], def: 10 },
+  { id: "anclaje", cat: "bienestar", name: "Anclaje 7,83", desc: "Un pulso lento y estable para volver al cuerpo.",
+    carrier: 174, beat: 7.83, band: "Theta-alfa", drones: [87, 174], noise: { type: "pink", cutoff: 700, gain: 0.04, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "lluvia", cat: "bienestar", name: "Lluvia tibia", desc: "Sin pulsos, solo textura. Para trabajar o descansar la mente.",
+    carrier: 0, beat: 0, band: "Textura", drones: [96], noise: { type: "pink", cutoff: 2600, gain: 0.22, lfo: 0.03 }, breath: [4, 6], def: 45 },
+  { id: "descenso", cat: "sueno", name: "Descenso delta", desc: "El pulso baja de 6 a 2 Hz en 20 minutos para acompañar el sueño.",
+    carrier: 100, beat: 6, beatTo: 2, ramp: 20, band: "Theta a delta", drones: [50, 75], noise: { type: "brown", cutoff: 380, gain: 0.12, lfo: 0.06 }, breath: [4, 8], def: 45 },
+  { id: "noche", cat: "sueno", name: "Noche profunda", desc: "Graves lentos y ruido marrón. Déjalo sonando hasta dormirte.",
+    carrier: 90, beat: 3, beatTo: 1.5, ramp: 30, band: "Delta", drones: [45, 60, 90], noise: { type: "brown", cutoff: 300, gain: 0.14, lfo: 0.05 }, breath: [4, 8], def: 45 },
+  { id: "marea", cat: "sueno", name: "Marea lenta", desc: "Olas de ruido marrón que suben y bajan cada doce segundos.",
+    carrier: 0, beat: 0, band: "Textura", drones: [55], noise: { type: "brown", cutoff: 650, gain: 0.26, lfo: 0.085, deep: true }, breath: [4, 8], def: 0 }
+];
+
+const STATES = [
+  { id: "tenso", t: "Acelerado o tenso", s: "Mandíbula apretada, pecho agitado", track: "exhala", msg: "Tu cuerpo pide bajar el ritmo antes de pensar en nada más. Empieza con Exhala larga." },
+  { id: "disperso", t: "Disperso", s: "Me cuesta sostener una tarea", track: "enfoque", msg: "Una frecuencia beta baja ayuda a mantener una sola cosa en la mente. Prueba Enfoque dorado." },
+  { id: "escasez", t: "Con sensación de escasez", s: "Preocupación por dinero o logros", track: "merecimiento", msg: "Primero regula el cuerpo, después replantea el plan. Merecimiento acompaña ese cambio." },
+  { id: "agotado", t: "Agotado, no duermo", s: "Mente encendida de noche", track: "descenso", msg: "Descenso delta baja el pulso poco a poco mientras tú te sueltas. Usa audífonos y volumen bajo." }
+];
+
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+
+let cur = TRACKS.find(t => t.id === "exhala");
+let minutes = 20;
+let filter = "todas";
+let favs = store.get("fx_favs", []);
+let log = store.get("fx_log", {});
+let pick = null;
+
+/* ---------- Audio ---------- */
+let ctx = null, master = null, nodes = [], playing = false, startedAt = 0, endAt = 0, elapsedBase = 0;
+let volume = 0.55;
+
+function noiseBuffer(c, type) {
+  const len = c.sampleRate * 6, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  if (type === "brown") {
+    let last = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+  } else {
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759; b2 = 0.969 * b2 + w * 0.153852;
+      b3 = 0.8665 * b3 + w * 0.3104856; b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898;
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11; b6 = w * 0.115926;
+    }
+  }
+  return buf;
+}
+
+function buildGraph(t) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  ctx = new AC();
+  master = ctx.createGain();
+  master.gain.value = 0;
+  master.connect(ctx.destination);
+  nodes = [];
+  const now = ctx.currentTime;
+
+  if (t.carrier && t.beat) {
+    [-1, 1].forEach((side) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), p = ctx.createStereoPanner();
+      o.type = "sine";
+      const f0 = t.carrier + side * t.beat / 2;
+      o.frequency.setValueAtTime(f0, now);
+      if (t.beatTo) {
+        const f1 = t.carrier + side * t.beatTo / 2;
+        o.frequency.linearRampToValueAtTime(f1, now + t.ramp * 60);
+      }
+      g.gain.value = 0.14; p.pan.value = side;
+      o.connect(g).connect(p).connect(master); o.start();
+      nodes.push(o);
+    });
+  }
+
+  t.drones.forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain();
+    o.type = "sine"; o.frequency.value = f; o.detune.value = (i - 1) * 3;
+    const base = 0.09 / Math.sqrt(t.drones.length);
+    g.gain.value = base;
+    l.frequency.value = 0.04 + i * 0.023; lg.gain.value = base * 0.55;
+    l.connect(lg).connect(g.gain);
+    o.connect(g).connect(master); o.start(); l.start();
+    nodes.push(o, l);
+  });
+
+  if (t.noise) {
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain();
+    s.buffer = noiseBuffer(ctx, t.noise.type); s.loop = true;
+    f.type = "lowpass"; f.frequency.value = t.noise.cutoff;
+    g.gain.value = t.noise.gain;
+    l.frequency.value = t.noise.lfo; lg.gain.value = t.noise.gain * (t.noise.deep ? 0.8 : 0.35);
+    l.connect(lg).connect(g.gain);
+    s.connect(f).connect(g).connect(master); s.start(); l.start();
+    nodes.push(s, l);
+  }
+}
+
+function start() {
+  if (playing) stopAudio(true);
+  buildGraph(cur);
+  ctx.resume();
+  master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 1.2);
+  playing = true;
+  startedAt = performance.now();
+  elapsedBase = 0;
+  endAt = minutes ? startedAt + minutes * 60000 : 0;
+  setPlayUI();
+  tick();
+}
+
+function stopAudio(quick) {
+  if (!ctx) return;
+  const c = ctx, m = master, n = nodes;
+  m.gain.cancelScheduledValues(c.currentTime);
+  m.gain.setTargetAtTime(0, c.currentTime, quick ? 0.08 : 0.6);
+  setTimeout(() => { n.forEach(x => { try { x.stop(); } catch (e) {} }); c.close().catch(() => {}); }, quick ? 400 : 3000);
+  ctx = null; master = null; nodes = [];
+  playing = false;
+}
+
+function stop() { stopAudio(false); setPlayUI(); renderClock(0); }
+
+/* ---------- UI ---------- */
+const orb = $("#orb"), orbLabel = $("#orbLabel"), clockEl = $("#clock");
+const fmt = (s) => { s = Math.max(0, Math.round(s)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+const dayKey = (d = new Date()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+
+function setPlayUI() {
+  $("#playBtn").textContent = playing ? "❚❚ Pausar" : "▶ Escuchar";
+  renderClock(0);
+  if (!playing) { orb.style.transform = "scale(.7)"; orbLabel.textContent = "Listo"; }
+}
+
+function renderClock(el) {
+  if (playing && endAt) clockEl.textContent = fmt((endAt - performance.now()) / 1000) + " restantes";
+  else if (playing) clockEl.textContent = fmt(el) + " transcurridos";
+  else clockEl.textContent = minutes ? fmt(minutes * 60) : "Sin fin";
+}
+
+let lastSec = -1;
+function tick() {
+  if (!playing) return;
+  const now = performance.now(), el = (now - startedAt) / 1000;
+  const [inh, exh] = cur.breath, cycle = inh + exh, ph = el % cycle;
+  const ease = (x) => 0.5 - 0.5 * Math.cos(Math.PI * x);
+  let k;
+  if (ph < inh) { k = ease(ph / inh); orbLabel.textContent = "Inhala"; }
+  else { k = 1 - ease((ph - inh) / exh); orbLabel.textContent = "Exhala"; }
+  orb.style.transform = "scale(" + (0.7 + 0.3 * k).toFixed(3) + ")";
+  const sec = Math.floor(el);
+  if (sec !== lastSec) {
+    lastSec = sec;
+    renderClock(el);
+    log[dayKey()] = (log[dayKey()] || 0) + 1;
+    if (sec % 10 === 0) store.set("fx_log", log);
+    renderStats();
+  }
+  if (endAt && now >= endAt) { store.set("fx_log", log); stop(); return; }
+  requestAnimationFrame(tick);
+}
+
+function renderStats() {
+  const m = Math.floor((log[dayKey()] || 0) / 60);
+  $("#todayMin").textContent = m + " min";
+  let n = 0, d = new Date();
+  if (!(log[dayKey(d)] >= 60)) d.setDate(d.getDate() - 1);
+  while (log[dayKey(d)] >= 60) { n++; d.setDate(d.getDate() - 1); }
+  $("#streak").textContent = n + (n === 1 ? " día" : " días");
+}
+
+function renderNow() {
+  const p = $("#player");
+  p.dataset.cat = cur.cat;
+  $("#nowCat").textContent = CATS[cur.cat].name + " · " + cur.band;
+  $("#nowTitle").textContent = cur.name;
+  $("#nowDesc").textContent = cur.desc;
+  renderList();
+}
+
+function renderList() {
+  const items = TRACKS.filter(t => filter === "todas" ? true : filter === "fav" ? favs.includes(t.id) : t.cat === filter);
+  const list = $("#list");
+  list.innerHTML = "";
+  if (!items.length) { list.innerHTML = '<div class="empty">Aún no tienes favoritas. Toca el corazón en cualquier audio para guardarlo aquí.</div>'; return; }
+  items.forEach(t => {
+    const wrap = document.createElement("div");
+    wrap.style.position = "relative";
+    const hz = t.beat ? (t.beatTo ? t.beat + "→" + t.beatTo : String(t.beat).replace(".", ",")) + " Hz" : "Textura";
+    wrap.innerHTML =
+      '<button class="card" type="button" data-id="' + t.id + '" data-cat="' + t.cat + '"' + (t.id === cur.id ? ' aria-current="true"' : "") + ">" +
+      '<span class="dot">' + hz + "</span>" +
+      "<span><h4>" + t.name + "</h4><p>" + t.desc + '</p><div class="meta">' + CATS[t.cat].name + " · " + t.band + " · " + (t.def ? t.def + " min sugeridos" : "sin fin") + "</div></span>" +
+      '<span style="width:40px"></span></button>' +
+      '<button class="fav" type="button" data-fav="' + t.id + '" data-cat="' + t.cat + '" aria-label="Guardar ' + t.name + ' en favoritas" aria-pressed="' + favs.includes(t.id) + '" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);--c:var(--' + ({ abundancia: "abu", bienestar: "bien", sueno: "sue" })[t.cat] + ')">' + (favs.includes(t.id) ? "♥" : "♡") + "</button>";
+    list.appendChild(wrap);
+  });
+}
+
+function renderTabs() {
+  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["fav", "Favoritas"]];
+  $("#tabs").innerHTML = tabs.map(([id, n]) => '<button class="chip" type="button" role="tab" data-tab="' + id + '" aria-selected="' + (filter === id) + '">' + n + "</button>").join("");
+}
+
+function renderStates() {
+  $("#states").innerHTML = STATES.map(s => '<button class="state" type="button" data-state="' + s.id + '" aria-pressed="' + (pick === s.id) + '"><b>' + s.t + "</b><span>" + s.s + "</span></button>").join("");
+  const reco = $("#reco");
+  const s = STATES.find(x => x.id === pick);
+  reco.hidden = !s;
+  if (s) $("#recoText").textContent = s.msg;
+}
+
+function select(id, play) {
+  cur = TRACKS.find(t => t.id === id);
+  minutes = cur.def;
+  document.querySelectorAll("[data-min]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === minutes)));
+  if (!minutes) document.querySelector('[data-min="0"]').setAttribute("aria-pressed", "true");
+  renderNow();
+  if (play) start(); else if (playing) start(); else setPlayUI();
+}
+
+/* ---------- Events ---------- */
+$("#playBtn").addEventListener("click", () => { playing ? stop() : start(); });
+$("#vol").addEventListener("input", (e) => {
+  volume = e.target.value / 100;
+  if (ctx && master) master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 0.1);
+});
+document.querySelectorAll("[data-min]").forEach(b => b.addEventListener("click", () => {
+  minutes = +b.dataset.min;
+  document.querySelectorAll("[data-min]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  if (playing) endAt = minutes ? performance.now() + minutes * 60000 : 0;
+  renderClock((performance.now() - startedAt) / 1000);
+}));
+$("#list").addEventListener("click", (e) => {
+  const f = e.target.closest("[data-fav]");
+  if (f) {
+    const id = f.dataset.fav;
+    favs = favs.includes(id) ? favs.filter(x => x !== id) : favs.concat(id);
+    store.set("fx_favs", favs); renderList(); return;
+  }
+  const c = e.target.closest("[data-id]");
+  if (c) select(c.dataset.id, true);
+});
+$("#tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-tab]");
+  if (b) { filter = b.dataset.tab; renderTabs(); renderList(); }
+});
+$("#states").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-state]");
+  if (b) { pick = b.dataset.state; renderStates(); select(STATES.find(s => s.id === pick).track, false); }
+});
+$("#recoGo").addEventListener("click", () => select(STATES.find(s => s.id === pick).track, true));
+$("#themeBtn").addEventListener("click", () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+});
+
+renderTabs(); renderStates(); renderNow(); renderStats(); setPlayUI();
+</script>
+</body>
+</html>
