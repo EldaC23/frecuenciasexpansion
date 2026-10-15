@@ -126,6 +126,14 @@ h3 { font: 400 26px/1.15 var(--f-display); margin: 0; }
 .card[data-cat="sueno"] { --c: var(--sue); }
 .card[data-cat="mis"] { --c: var(--mis); }
 .card[data-cat="tono"] { --c: var(--ton); }
+.search input { width: 100%; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font: 400 16px var(--f-body); margin: 12px 0 10px; }
+.search input:focus-visible { border-color: var(--accent); }
+.needs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.usage { margin: 0; display: grid; gap: 10px; font-size: 13.5px; }
+.usage div { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; }
+.usage dt { font: 500 11px/1.6 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.usage dd { margin: 0; color: var(--muted); }
+.linkbtn { background: transparent; border: 0; padding: 0; color: var(--fg); text-decoration: underline; font-size: inherit; }
 .note { font-size: 13.5px; color: var(--muted); background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
 .adder { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
 .addbtn { background: var(--mis); color: var(--on-accent); border-radius: 999px; padding: 11px 20px; font-weight: 600; font-size: 15px; cursor: pointer; }
@@ -192,6 +200,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
           <input id="vol" type="range" min="0" max="100" value="80">
         </div>
       </div>
+      <dl class="usage" id="usage"></dl>
       <div class="stats">
         <span>Hoy <b id="todayMin">0 min</b></span>
         <span>Racha <b id="streak">0 días</b></span>
@@ -209,6 +218,8 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
       </div>
 
       <h3>Tu biblioteca</h3>
+      <div class="search"><input id="q" type="search" placeholder="Busca por lo que necesitas: miedo, dinero, dormir…" aria-label="Buscar audios" autocomplete="off"></div>
+      <div class="needs" id="needs" role="group" aria-label="Necesidades frecuentes"></div>
       <div class="tabs" id="tabs" role="tablist"></div>
       <div class="list" id="list"></div>
     </section>
@@ -232,35 +243,35 @@ const CATS = {
 
 // carrier: tono base en Hz; beat: diferencia entre oído izquierdo y derecho (Hz); beatTo/ramp: baja el pulso con el tiempo.
 const TRACKS = [
-  { id: "apertura", cat: "abundancia", name: "Apertura", desc: "Para empezar el día con el pecho abierto y la atención suave.",
+  { id: "apertura", cat: "abundancia", tags: "mañana apertura inicio del dia atencion energia", when: "Por la mañana, al empezar el día.", name: "Apertura", desc: "Para empezar el día con el pecho abierto y la atención suave.",
     carrier: 200, beat: 10, band: "Alfa", drones: [132, 198, 264], noise: { type: "pink", cutoff: 900, gain: 0.05, lfo: 0.07 }, breath: [5, 5], def: 20 },
-  { id: "enfoque", cat: "abundancia", name: "Enfoque dorado", desc: "Una sola tarea, sin prisa. Atención sostenida sin tensión.",
+  { id: "enfoque", cat: "abundancia", tags: "enfoque concentracion trabajo tarea estudio", when: "Antes o durante una tarea que pida atención.", name: "Enfoque dorado", desc: "Una sola tarea, sin prisa. Atención sostenida sin tensión.",
     carrier: 220, beat: 14, band: "Beta baja", drones: [110, 165], noise: { type: "pink", cutoff: 1400, gain: 0.04, lfo: 0.05 }, breath: [4, 6], def: 45 },
-  { id: "merecimiento", cat: "abundancia", name: "Merecimiento", desc: "Para soltar la sensación de que nunca alcanza.",
+  { id: "merecimiento", cat: "abundancia", tags: "dinero escasez merecimiento soltar preocupacion prosperidad", when: "Cuando sientas escasez o preocupación por dinero.", name: "Merecimiento", desc: "Para soltar la sensación de que nunca alcanza.",
     carrier: 180, beat: 7.5, band: "Theta-alfa", drones: [144, 216, 288], noise: { type: "brown", cutoff: 500, gain: 0.07, lfo: 0.06 }, breath: [5, 7], def: 20 },
-  { id: "exhala", cat: "bienestar", name: "Exhala larga", desc: "Para bajar el ritmo cuando vas acelerado. La exhala dura el doble.",
+  { id: "exhala", cat: "bienestar", tags: "estres tension acelerado prisa respiracion calma ansiedad cuerpo", when: "En cualquier momento de tensión o prisa. 10 minutos bastan.", name: "Exhala larga", desc: "Para bajar el ritmo cuando vas acelerado. La exhala dura el doble.",
     carrier: 150, beat: 8, band: "Alfa", drones: [75, 112.5], noise: { type: "brown", cutoff: 420, gain: 0.12, lfo: 0.1 }, breath: [4, 8], def: 10 },
-  { id: "anclaje", cat: "bienestar", name: "Anclaje 7,83", desc: "Un pulso lento y estable para volver al cuerpo.",
+  { id: "anclaje", cat: "bienestar", tags: "cuerpo calma anclaje ansiedad estres equilibrio", when: "A media jornada o al volver a casa.", name: "Anclaje 7,83", desc: "Un pulso lento y estable para volver al cuerpo.",
     carrier: 174, beat: 7.83, band: "Theta-alfa", drones: [87, 174], noise: { type: "pink", cutoff: 700, gain: 0.04, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "lluvia", cat: "bienestar", name: "Lluvia tibia", desc: "Sin pulsos, solo textura. Para trabajar o descansar la mente.",
+  { id: "lluvia", cat: "bienestar", tags: "fondo trabajo textura ruido calma estres", when: "De fondo mientras trabajas o descansas.", name: "Lluvia tibia", desc: "Sin pulsos, solo textura. Para trabajar o descansar la mente.",
     carrier: 0, beat: 0, band: "Textura", drones: [96], noise: { type: "pink", cutoff: 2600, gain: 0.22, lfo: 0.03 }, breath: [4, 6], def: 45 },
-  { id: "descenso", cat: "sueno", name: "Descenso delta", desc: "El pulso baja de 6 a 2 Hz en 20 minutos para acompañar el sueño.",
+  { id: "descenso", cat: "sueno", tags: "dormir sueno noche insomnio descanso", when: "Ya acostado, con volumen bajo.", name: "Descenso delta", desc: "El pulso baja de 6 a 2 Hz en 20 minutos para acompañar el sueño.",
     carrier: 100, beat: 6, beatTo: 2, ramp: 20, band: "Theta a delta", drones: [50, 75], noise: { type: "brown", cutoff: 380, gain: 0.12, lfo: 0.06 }, breath: [4, 8], def: 45 },
-  { id: "noche", cat: "sueno", name: "Noche profunda", desc: "Graves lentos y ruido marrón. Déjalo sonando hasta dormirte.",
+  { id: "noche", cat: "sueno", tags: "dormir sueno noche insomnio profundo descanso", when: "Ya acostado; déjalo sonar hasta dormirte.", name: "Noche profunda", desc: "Graves lentos y ruido marrón. Déjalo sonando hasta dormirte.",
     carrier: 90, beat: 3, beatTo: 1.5, ramp: 30, band: "Delta", drones: [45, 60, 90], noise: { type: "brown", cutoff: 300, gain: 0.14, lfo: 0.05 }, breath: [4, 8], def: 45 },
-  { id: "marea", cat: "sueno", name: "Marea lenta", desc: "Olas de ruido marrón que suben y bajan cada doce segundos.",
+  { id: "marea", cat: "sueno", tags: "dormir sueno noche olas fondo descanso", when: "Ya acostado; también sirve como sonido de fondo.", name: "Marea lenta", desc: "Olas de ruido marrón que suben y bajan cada doce segundos.",
     carrier: 0, beat: 0, band: "Textura", drones: [55], noise: { type: "brown", cutoff: 650, gain: 0.26, lfo: 0.085, deep: true }, breath: [4, 8], def: 0 },
-  { id: "hz432", cat: "tono", name: "432 Hz", desc: "Vibraciones positivas.", hz: 432, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz888", cat: "tono", name: "888 Hz", desc: "Frecuencia de abundancia.", hz: 888, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz174", cat: "tono", name: "174 Hz", desc: "Calma el cuerpo y alivia la tensión física.", hz: 174, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz285", cat: "tono", name: "285 Hz", desc: "Restablece el equilibrio y la confianza.", hz: 285, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz396", cat: "tono", name: "396 Hz", desc: "Libera el miedo y la culpa.", hz: 396, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz417", cat: "tono", name: "417 Hz", desc: "Favorece el cambio y la liberación emocional.", hz: 417, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz528", cat: "tono", name: "528 Hz", desc: "Frecuencia del amor y la apertura del corazón.", hz: 528, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz639", cat: "tono", name: "639 Hz", desc: "Fortalece los vínculos y las relaciones.", hz: 639, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz741", cat: "tono", name: "741 Hz", desc: "Purifica la energía y libera bloqueos.", hz: 741, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz852", cat: "tono", name: "852 Hz", desc: "Despierta la intuición.", hz: 852, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
-  { id: "hz963", cat: "tono", name: "963 Hz", desc: "Promueve la expansión y la conexión espiritual.", hz: 963, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 }
+  { id: "hz432", cat: "tono", tags: "positivo animo calma armonia bienestar", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "432 Hz", desc: "Vibraciones positivas.", hz: 432, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz888", cat: "tono", tags: "abundancia dinero prosperidad merecimiento", when: "Por la mañana, antes de planear el día.", name: "888 Hz", desc: "Frecuencia de abundancia.", hz: 888, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz174", cat: "tono", tags: "tension cuerpo dolor calma estres", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "174 Hz", desc: "Calma el cuerpo y alivia la tensión física.", hz: 174, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz285", cat: "tono", tags: "equilibrio confianza seguridad", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "285 Hz", desc: "Restablece el equilibrio y la confianza.", hz: 285, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz396", cat: "tono", tags: "miedo culpa seguridad raiz enraizamiento estres", when: "Meditación por la mañana o de descompresión por la noche.", name: "396 Hz", desc: "Libera el miedo y la culpa.", hz: 396, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz417", cat: "tono", tags: "cambio liberacion emociones soltar", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "417 Hz", desc: "Favorece el cambio y la liberación emocional.", hz: 417, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz528", cat: "tono", tags: "amor corazon apertura relaciones", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "528 Hz", desc: "Frecuencia del amor y la apertura del corazón.", hz: 528, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz639", cat: "tono", tags: "vinculos relaciones pareja familia amistad", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "639 Hz", desc: "Fortalece los vínculos y las relaciones.", hz: 639, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz741", cat: "tono", tags: "energia bloqueos limpiar claridad", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "741 Hz", desc: "Purifica la energía y libera bloqueos.", hz: 741, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz852", cat: "tono", tags: "intuicion claridad vision", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "852 Hz", desc: "Despierta la intuición.", hz: 852, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 },
+  { id: "hz963", cat: "tono", tags: "expansion conexion espiritual", when: "Meditación, pausa de enfoque o sonido de fondo suave.", name: "963 Hz", desc: "Promueve la expansión y la conexión espiritual.", hz: 963, band: "Tradición popular", drones: [], noise: { type: "brown", cutoff: 420, gain: 0.03, lfo: 0.05 }, breath: [5, 5], def: 20 }
 ];
 
 const STATES = [
@@ -281,6 +292,7 @@ let customs = [];
 let cur = TRACKS.find(t => t.id === "exhala");
 let minutes = 20;
 let filter = "todas";
+let query = "";
 let favs = store.get("fx_favs", []);
 let log = store.get("fx_log", {});
 let pick = null;
@@ -454,16 +466,51 @@ function renderStats() {
   $("#streak").textContent = n + (n === 1 ? " día" : " días");
 }
 
+function usageRows(t) {
+  const hp = t.custom ? "Cualquiera: parlante o audífonos."
+    : t.hz ? "Parlante o audífonos; con audífonos se notan mejor los graves."
+    : (t.carrier && t.beat) ? "Recomendados: el pulso binaural necesita un oído distinto en cada lado."
+    : "No hacen falta; funciona con parlante.";
+  const vol = t.cat === "sueno" ? "Bajo, casi de fondo." : "Cómodo: que puedas hablar por encima sin esfuerzo.";
+  const when = t.when || "A tu ritmo.";
+  return "<div><dt>Audífonos</dt><dd>" + hp + "</dd></div><div><dt>Volumen</dt><dd>" + vol + "</dd></div><div><dt>Momento</dt><dd>" + when + "</dd></div>";
+}
+
 function renderNow() {
   const p = $("#player");
   p.dataset.cat = cur.cat;
   $("#nowCat").textContent = CATS[cur.cat].name + " · " + cur.band;
   $("#nowTitle").textContent = cur.name;
   $("#nowDesc").textContent = cur.desc;
+  $("#usage").innerHTML = usageRows(cur);
   renderList();
 }
 
+const norm = (x) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const NEEDS = [["Estrés", "estres"], ["Miedo", "miedo"], ["Culpa", "culpa"], ["Dinero", "dinero"], ["Enfoque", "enfoque"], ["Dormir", "dormir"], ["Cuerpo", "cuerpo"], ["Relaciones", "relaciones"]];
+
+function renderNeeds() {
+  $("#needs").innerHTML = NEEDS.map(([n, k]) => '<button class="chip" type="button" data-need="' + k + '" aria-pressed="' + (norm(query) === k) + '">' + n + "</button>").join("");
+}
+
+function renderResults() {
+  const terms = norm(query).split(/\s+/).filter(Boolean);
+  const hay = (t) => norm([t.name, t.desc, CATS[t.cat].name, t.band || "", t.tags || ""].join(" "));
+  const items = TRACKS.concat(customs).filter(t => { const h = hay(t); return terms.every(w => h.includes(w)); });
+  const list = $("#list");
+  let h = '<div class="note">' + items.length + (items.length === 1 ? " resultado" : " resultados") + " para “" + esc(query) + '” · <button class="linkbtn" type="button" data-clear="1">Limpiar</button></div>';
+  if (!items.length) h += '<div class="empty">Nada coincide. Prueba con otra palabra, por ejemplo estrés, dormir o dinero.</div>';
+  items.forEach(t => {
+    const hz = t.custom ? fmt(t.rec.dur) : t.hz ? t.hz + " Hz" : t.beat ? (t.beatTo ? t.beat + "→" + t.beatTo : String(t.beat).replace(".", ",")) + " Hz" : "Textura";
+    const accent = ({ abundancia: "abu", bienestar: "bien", sueno: "sue", tono: "ton", mis: "mis" })[t.cat];
+    h += '<div style="position:relative"><button class="card" type="button" data-id="' + t.id + '" data-cat="' + t.cat + '"' + (t.id === cur.id ? ' aria-current="true"' : "") + '><span class="dot">' + hz + "</span><span><h4>" + esc(t.name) + "</h4><p>" + esc(t.desc) + '</p><div class="meta">' + CATS[t.cat].name + (t.band ? " · " + t.band : "") + '</div></span><span style="width:40px"></span></button>' +
+      (t.custom ? "" : '<button class="fav" type="button" data-fav="' + t.id + '" data-cat="' + t.cat + '" aria-label="Guardar ' + t.name + ' en favoritas" aria-pressed="' + favs.includes(t.id) + '" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);--c:var(--' + accent + ')">' + (favs.includes(t.id) ? "♥" : "♡") + "</button>") + "</div>";
+  });
+  list.innerHTML = h;
+}
+
 function renderList() {
+  if (query) { renderResults(); return; }
   if (filter === "mis") { renderMine(); return; }
   const items = TRACKS.filter(t => filter === "todas" ? t.cat !== "tono" : filter === "fav" ? favs.includes(t.id) : t.cat === (filter === "tonos" ? "tono" : filter));
   const list = $("#list");
@@ -485,7 +532,7 @@ function renderList() {
 
 function renderTabs() {
   const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["tonos", "Tonos puros"], ["mis", "Mis audios"], ["fav", "Favoritas"]];
-  $("#tabs").innerHTML = tabs.map(([id, n]) => '<button class="chip" type="button" role="tab" data-tab="' + id + '" aria-selected="' + (filter === id) + '">' + n + "</button>").join("");
+  $("#tabs").innerHTML = tabs.map(([id, n]) => '<button class="chip" type="button" role="tab" data-tab="' + id + '" aria-selected="' + (filter === id && !query) + '">' + n + "</button>").join("");
 }
 
 function renderStates() {
@@ -607,6 +654,12 @@ $("#list").addEventListener("keydown", (e) => {
 });
 
 /* ---------- Events ---------- */
+function setQuery(v) { query = v.trim(); $("#q").value = v; renderNeeds(); renderTabs(); renderList(); }
+$("#q").addEventListener("input", (e) => setQuery(e.target.value));
+$("#needs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-need]");
+  if (b) setQuery(norm(query) === b.dataset.need ? "" : b.dataset.need);
+});
 $("#playBtn").addEventListener("click", () => { playing ? stop() : start(); });
 $("#vol").addEventListener("input", (e) => {
   volume = e.target.value / 100;
@@ -621,6 +674,7 @@ document.querySelectorAll("[data-min]").forEach(b => b.addEventListener("click",
   renderClock((performance.now() - startedAt) / 1000);
 }));
 $("#list").addEventListener("click", (e) => {
+  if (e.target.closest("[data-clear]")) { setQuery(""); return; }
   const ren = e.target.closest("[data-ren]"), del = e.target.closest("[data-del]"), sv = e.target.closest("[data-save]");
   if (ren) { editingId = ren.dataset.ren; delId = null; renderList(); return; }
   if (sv) { commitRename(sv.dataset.save); return; }
@@ -636,7 +690,7 @@ $("#list").addEventListener("click", (e) => {
 });
 $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-tab]");
-  if (b) { filter = b.dataset.tab; renderTabs(); renderList(); }
+  if (b) { filter = b.dataset.tab; query = ""; $("#q").value = ""; renderNeeds(); renderTabs(); renderList(); }
 });
 $("#states").addEventListener("click", (e) => {
   const b = e.target.closest("[data-state]");
@@ -649,7 +703,7 @@ $("#themeBtn").addEventListener("click", () => {
   r.dataset.theme = dark ? "light" : "dark";
 });
 
-renderTabs(); renderStates(); renderNow(); renderStats(); setPlayUI(); loadCustoms();
+renderTabs(); renderStates(); renderNow(); renderStats(); setPlayUI(); renderNeeds(); loadCustoms();
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
