@@ -325,16 +325,16 @@ const TRACKS = [
 
 const STATES = [
   { id: "tenso", t: "Acelerado o tenso", s: "Mandíbula apretada, pecho agitado", track: "exhala", msg: "Tu cuerpo pide bajar el ritmo antes de pensar en nada más. Empieza con Exhala larga.",
-    why: "Exhala larga te guía a inhalar 4 segundos y exhalar 8, sobre un pulso alfa suave de 8 Hz. Alargar la exhalación es una técnica conocida para bajar el pulso. Los tonos 396 Hz (tradición: soltar miedo y culpa) y 174 Hz (tradición: aliviar la tensión física) son alternativas más suaves.",
+    why: "Tu sistema nervioso está en modo supervivencia: mandíbula apretada, pecho agitado. Exhala larga lleva el cuerpo a una calma despierta con ondas alfa de 8 Hz y una exhalación que dura el doble que la inhalación, para que sueltes la tensión antes de visualizar o decidir. Las frecuencias 396 Hz (libera el miedo y la culpa) y 174 Hz (calma el cuerpo y alivia la tensión física) refuerzan ese soltar.",
     alts: ["hz396", "hz174", "anclaje"] },
   { id: "disperso", t: "Disperso", s: "Me cuesta sostener una tarea", track: "enfoque", msg: "Una frecuencia beta baja ayuda a mantener una sola cosa en la mente. Prueba Enfoque dorado.",
-    why: "Enfoque dorado usa un pulso de 14 Hz (beta baja), el rango que se asocia con la atención despierta, sobre un fondo estable y sin sobresaltos. Ponlo a volumen cómodo mientras trabajas. Si prefieres algo sin pulso, Lluvia tibia es una textura de fondo, y la 528 Hz (tradición: transformación) es un tono continuo.",
+    why: "Para que el campo de tu atención se ordene necesitas una sola intención a la vez. Enfoque dorado usa ondas beta bajas de 14 Hz, ligadas a la concentración, sobre un tono estable que ayuda a centrar la mente en una tarea. La 528 Hz (transformación y apertura) sirve como tono continuo de fondo, y Lluvia tibia como textura sin pulso.",
     alts: ["hz528", "lluvia", "apertura"] },
   { id: "escasez", t: "Con sensación de escasez", s: "Preocupación por dinero o logros", track: "merecimiento", msg: "Primero regula el cuerpo, después replantea el plan. Merecimiento acompaña ese cambio.",
-    why: "La preocupación por dinero suele venir con tensión en el cuerpo. Merecimiento va a un ritmo lento (7,5 Hz, theta-alfa) con respiración 5-7 para soltar primero esa tensión; después piensa o escribe tu plan con calma. La 888 Hz es la frecuencia de abundancia de la tradición popular.",
+    why: "La preocupación por el dinero crea un bucle de pensamientos repetitivos que te mantiene vibrando en carencia. Merecimiento baja a ondas theta-alfa de 7,5 Hz, el estado en que la mente está más receptiva para soltar creencias limitantes mientras visualizas prosperidad. La 888 Hz es la frecuencia de la abundancia: úsala después para sostener la visualización.",
     alts: ["hz888", "apertura", "exhala"] },
   { id: "agotado", t: "Agotado, no duermo", s: "Mente encendida de noche", track: "descenso", msg: "Descenso delta baja el pulso poco a poco mientras tú te sueltas. Usa audífonos y volumen bajo.",
-    why: "Descenso delta baja el pulso de 6 a 2 Hz durante 20 minutos, hacia el rango asociado al sueño profundo, con ruido marrón y respiración 4-8. Ponlo acostado y bajo, y déjalo sonar. Si prefieres sin pulsos, Marea lenta es solo textura; Noche profunda es más grave y lenta; y la 963 Hz es la alternativa de la tradición popular (conexión y expansión).",
+    why: "Cuando la mente no se apaga de noche hay que silenciar el diálogo interno. Descenso delta baja el pulso de 6 a 2 Hz durante 20 minutos, hacia las ondas delta del sueño profundo y reparador, con ruido marrón y respiración 4-8. La 963 Hz (conexión y expansión) eleva la conciencia fuera de los problemas del día; Noche profunda y Marea lenta acompañan el descanso.",
     alts: ["noche", "marea", "hz963"] }
 ];
 
@@ -585,7 +585,7 @@ function renderList() {
   if (filter === "mis") { renderMine(); return; }
   const items = TRACKS.filter(t => filter === "todas" ? t.cat !== "tono" : filter === "fav" ? favs.includes(t.id) : t.cat === (filter === "tonos" ? "tono" : filter));
   const list = $("#list");
-  list.innerHTML = filter === "tonos" ? '<div class="note">Tonos puros de tradición popular. No tienen base científica comprobada: úsalos como sonidos para relajarte o concentrarte. Con audífonos se aprecian mejor los graves.</div>' : "";
+  list.innerHTML = filter === "tonos" ? '<div class="note">Frecuencias de la tradición Solfeggio y de la práctica de manifestación. Cada una tiene su intención: escucha la que resuene contigo. Con audífonos se aprecian mejor los graves.</div>' : "";
   if (!items.length) { list.innerHTML = '<div class="empty">Aún no tienes favoritas. Toca el corazón en cualquier audio para guardarlo aquí.</div>'; return; }
   items.forEach(t => {
     const wrap = document.createElement("div");
