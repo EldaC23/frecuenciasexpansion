@@ -18,6 +18,7 @@
   --abu: #e0b34f;
   --bien: #5fc6b4;
   --sue: #9a8cf0;
+  --mis: #e58fb0;
   --on-accent: #0d1417;
   --accent: var(--bien);
   --f-display: "Instrument Serif", Georgia, serif;
@@ -28,13 +29,13 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #eef3f2; --surface: #ffffff; --surface-2: #e4edec; --line: #cfdcdb;
-    --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6;
+    --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6; --mis: #a23a68;
     --on-accent: #ffffff; color-scheme: light;
   }
 }
 :root[data-theme="light"] {
   --bg: #eef3f2; --surface: #ffffff; --surface-2: #e4edec; --line: #cfdcdb;
-  --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6;
+  --fg: #12262a; --muted: #4f686b; --abu: #8a6403; --bien: #0b7565; --sue: #5646c6; --mis: #a23a68;
   --on-accent: #ffffff; color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -64,6 +65,7 @@ h1 em { color: var(--abu); }
 .player[data-cat="abundancia"] { --accent: var(--abu); }
 .player[data-cat="bienestar"] { --accent: var(--bien); }
 .player[data-cat="sueno"] { --accent: var(--sue); }
+.player[data-cat="mis"] { --accent: var(--mis); }
 .now { display: grid; gap: 4px; text-align: center; }
 .now .cat { font: 500 12px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 .now h2 { font: 400 32px/1.1 var(--f-display); margin: 0; }
@@ -112,6 +114,19 @@ h3 { font: 400 26px/1.15 var(--f-display); margin: 0; }
 .card[data-cat="abundancia"] { --c: var(--abu); }
 .card[data-cat="bienestar"] { --c: var(--bien); }
 .card[data-cat="sueno"] { --c: var(--sue); }
+.card[data-cat="mis"] { --c: var(--mis); }
+.adder { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.addbtn { background: var(--mis); color: var(--on-accent); border-radius: 999px; padding: 11px 20px; font-weight: 600; font-size: 15px; cursor: pointer; }
+.addbtn:hover { filter: brightness(1.08); }
+.hint { font-size: 13px; color: var(--muted); flex: 1; min-width: 200px; }
+.msg { font-size: 14px; margin-bottom: 10px; min-height: 0; }
+.msg:empty { display: none; }
+.msg.err { color: var(--mis); }
+.acts { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; align-items: center; }
+.ib { background: transparent; border: 0; padding: 8px 9px; border-radius: 10px; font-size: 16px; line-height: 1; color: var(--muted); }
+.ib:hover { color: var(--fg); background: var(--surface-2); }
+.ib.warn { color: var(--on-accent); background: var(--mis); font-size: 13px; font-weight: 600; padding: 8px 12px; }
+.rename { width: 100%; min-width: 0; background: var(--bg); color: var(--fg); border: 1px solid var(--mis); border-radius: 10px; padding: 9px 12px; font: 500 16px var(--f-body); }
 .card:hover { border-color: var(--muted); }
 .card[aria-current="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 10%, var(--surface)); }
 .dot { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); font: 500 11px/1 var(--f-mono); text-align: center; }
@@ -158,6 +173,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
           <button class="chip" type="button" data-min="20" aria-pressed="true">20 min</button>
           <button class="chip" type="button" data-min="45" aria-pressed="false">45 min</button>
           <button class="chip" type="button" data-min="0" aria-pressed="false">Sin fin</button>
+          <button class="chip" type="button" data-min="-1" id="onceChip" aria-pressed="false" hidden>Una vez</button>
         </div>
         <div class="row">
           <label class="lbl" for="vol">Volumen</label>
@@ -187,7 +203,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   </div>
 
   <footer>
-    <span>Los audios se generan en tu navegador con tonos puros y ruido suave; no son grabaciones. Los pulsos binaurales funcionan con audífonos estéreo.</span>
+    <span>Los audios de la biblioteca se generan en tu navegador con tonos puros y ruido suave; no son grabaciones. Tus propios audios se guardan solo en este dispositivo. Los pulsos binaurales funcionan con audífonos estéreo.</span>
     <span>Es una herramienta de relajación, no un tratamiento médico. Si tienes epilepsia, marcapasos o una condición diagnosticada, consulta a tu profesional antes de usarla. Baja el volumen si algo te incomoda.</span>
     <button class="theme" id="themeBtn" type="button">Cambiar tema</button>
   </footer>
@@ -197,7 +213,8 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
 const CATS = {
   abundancia: { name: "Abundancia", short: "ABU" },
   bienestar: { name: "Bienestar", short: "BIE" },
-  sueno: { name: "Sueño", short: "SUE" }
+  sueno: { name: "Sueño", short: "SUE" },
+  mis: { name: "Mis audios", short: "MIS" }
 };
 
 // carrier: tono base en Hz; beat: diferencia entre oído izquierdo y derecho (Hz); beatTo/ramp: baja el pulso con el tiempo.
@@ -230,11 +247,13 @@ const STATES = [
 ];
 
 const $ = (s) => document.querySelector(s);
+const findTrack = (id) => TRACKS.find(t => t.id === id) || customs.find(t => t.id === id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 };
 
+let customs = [];
 let cur = TRACKS.find(t => t.id === "exhala");
 let minutes = 20;
 let filter = "todas";
@@ -244,7 +263,7 @@ let pick = null;
 
 /* ---------- Audio ---------- */
 let ctx = null, master = null, nodes = [], playing = false, startedAt = 0, endAt = 0, elapsedBase = 0;
-let volume = 0.55;
+let volume = 0.55, audioEl = null, audioURL = null;
 
 function noiseBuffer(c, type) {
   const len = c.sampleRate * 6, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -313,18 +332,30 @@ function buildGraph(t) {
 
 function start() {
   if (playing) stopAudio(true);
-  buildGraph(cur);
-  ctx.resume();
-  master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 1.2);
+  if (cur.custom) startCustom();
+  else {
+    buildGraph(cur);
+    ctx.resume();
+    master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 1.2);
+  }
   playing = true;
   startedAt = performance.now();
   elapsedBase = 0;
-  endAt = minutes ? startedAt + minutes * 60000 : 0;
+  endAt = minutes > 0 ? startedAt + minutes * 60000 : 0;
   setPlayUI();
   tick();
 }
 
 function stopAudio(quick) {
+  if (audioEl) {
+    const a = audioEl, u = audioURL, step = a.volume / (quick ? 3 : 14);
+    audioEl = null; audioURL = null; playing = false;
+    const iv = setInterval(() => {
+      if (a.volume - step <= 0.01) { clearInterval(iv); a.pause(); URL.revokeObjectURL(u); }
+      else a.volume = a.volume - step;
+    }, 50);
+    return;
+  }
   if (!ctx) return;
   const c = ctx, m = master, n = nodes;
   m.gain.cancelScheduledValues(c.currentTime);
@@ -348,9 +379,10 @@ function setPlayUI() {
 }
 
 function renderClock(el) {
-  if (playing && endAt) clockEl.textContent = fmt((endAt - performance.now()) / 1000) + " restantes";
+  if (playing && minutes === -1 && audioEl) clockEl.textContent = fmt((audioEl.duration || 0) - audioEl.currentTime) + " restantes";
+  else if (playing && endAt) clockEl.textContent = fmt((endAt - performance.now()) / 1000) + " restantes";
   else if (playing) clockEl.textContent = fmt(el) + " transcurridos";
-  else clockEl.textContent = minutes ? fmt(minutes * 60) : "Sin fin";
+  else clockEl.textContent = minutes > 0 ? fmt(minutes * 60) : minutes === -1 ? (cur.rec ? fmt(cur.rec.dur) : "Una vez") : "Sin fin";
 }
 
 let lastSec = -1;
@@ -394,6 +426,7 @@ function renderNow() {
 }
 
 function renderList() {
+  if (filter === "mis") { renderMine(); return; }
   const items = TRACKS.filter(t => filter === "todas" ? true : filter === "fav" ? favs.includes(t.id) : t.cat === filter);
   const list = $("#list");
   list.innerHTML = "";
@@ -413,7 +446,7 @@ function renderList() {
 }
 
 function renderTabs() {
-  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["fav", "Favoritas"]];
+  const tabs = [["todas", "Todas"], ["abundancia", "Abundancia"], ["bienestar", "Bienestar"], ["sueno", "Sueño"], ["mis", "Mis audios"], ["fav", "Favoritas"]];
   $("#tabs").innerHTML = tabs.map(([id, n]) => '<button class="chip" type="button" role="tab" data-tab="' + id + '" aria-selected="' + (filter === id) + '">' + n + "</button>").join("");
 }
 
@@ -426,27 +459,134 @@ function renderStates() {
 }
 
 function select(id, play) {
-  cur = TRACKS.find(t => t.id === id);
+  cur = findTrack(id);
   minutes = cur.def;
+  $("#onceChip").hidden = !cur.custom;
   document.querySelectorAll("[data-min]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === minutes)));
   if (!minutes) document.querySelector('[data-min="0"]').setAttribute("aria-pressed", "true");
   renderNow();
   if (play) start(); else if (playing) start(); else setPlayUI();
 }
 
+/* ---------- Mis audios (se guardan en el navegador) ---------- */
+let editingId = null, delId = null, misMsg = "", misErr = false;
+const MAX_SEC = 15 * 60 + 5;
+const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const idb = () => new Promise((res, rej) => {
+  const r = indexedDB.open("fx_mis", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("a", { keyPath: "id" });
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+const idbDo = (mode, fn) => idb().then(db => new Promise((res, rej) => {
+  const q = fn(db.transaction("a", mode).objectStore("a"));
+  q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+}));
+function toTrack(r) {
+  return { id: r.id, cat: "mis", custom: true, rec: r, name: r.name, desc: "Tu audio · " + fmt(r.dur), band: "Tu audio", breath: [4, 6], def: -1 };
+}
+async function loadCustoms() {
+  try {
+    const all = await idbDo("readonly", (s) => s.getAll());
+    customs = all.sort((a, b) => a.at - b.at).map(toTrack);
+  } catch (e) { misMsg = "Este navegador no permite guardar audios propios."; misErr = true; }
+  if (filter === "mis") renderList();
+}
+function getDur(file) {
+  return new Promise((res) => {
+    const a = new Audio(), u = URL.createObjectURL(file);
+    a.preload = "metadata";
+    a.onloadedmetadata = () => { res(a.duration); URL.revokeObjectURL(u); };
+    a.onerror = () => { res(NaN); URL.revokeObjectURL(u); };
+    a.src = u;
+  });
+}
+async function addFiles(files) {
+  const ok = [], bad = [];
+  for (const f of files) {
+    const nm = f.name.replace(/\.[^.]+$/, "");
+    if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|wav|aac|ogg|opus|flac)$/i.test(f.name)) { bad.push(nm + " (no es un audio)"); continue; }
+    const d = await getDur(f);
+    if (!isFinite(d) || d <= 0) { bad.push(nm + " (no se pudo leer)"); continue; }
+    if (d > MAX_SEC) { bad.push(nm + " (dura " + Math.ceil(d / 60) + " min, el máximo es 15)"); continue; }
+    const rec = { id: "u" + Date.now() + Math.random().toString(36).slice(2, 6), name: nm, blob: f, dur: d, at: Date.now() };
+    try { await idbDo("readwrite", (s) => s.put(rec)); customs.push(toTrack(rec)); ok.push(nm); }
+    catch (e) { bad.push(nm + " (no cupo en el almacenamiento)"); }
+  }
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  misErr = bad.length > 0;
+  misMsg = (ok.length ? "Añadidos: " + ok.length + ". " : "") + (bad.length ? "No se añadieron: " + bad.join(", ") + "." : "");
+  renderList();
+}
+function commitRename(id) {
+  const t = customs.find(x => x.id === id), inp = $("#renameIn");
+  editingId = null;
+  if (t && inp) {
+    const v = inp.value.trim();
+    if (v) { t.name = v; t.rec.name = v; idbDo("readwrite", (s) => s.put(t.rec)).catch(() => {}); }
+  }
+  if (cur && cur.id === id) renderNow(); else renderList();
+}
+function deleteCustom(id) {
+  if (delId !== id) { delId = id; renderList(); setTimeout(() => { if (delId === id) { delId = null; if (filter === "mis") renderList(); } }, 4000); return; }
+  delId = null;
+  if (cur.id === id) { if (playing) stop(); cur = TRACKS.find(t => t.id === "exhala"); minutes = cur.def; $("#onceChip").hidden = true; }
+  customs = customs.filter(x => x.id !== id);
+  idbDo("readwrite", (s) => s.delete(id)).catch(() => {});
+  misErr = false; misMsg = "Audio borrado.";
+  renderNow(); setPlayUI();
+}
+function startCustom() {
+  audioURL = URL.createObjectURL(cur.rec.blob);
+  audioEl = new Audio(audioURL);
+  audioEl.loop = minutes !== -1;
+  audioEl.volume = volume;
+  audioEl.addEventListener("ended", () => { if (minutes === -1 && playing) { store.set("fx_log", log); stop(); } });
+  audioEl.play().catch(() => { misErr = true; misMsg = "No se pudo reproducir ese audio."; stop(); if (filter === "mis") renderList(); });
+}
+function renderMine() {
+  const list = $("#list");
+  let h = '<div class="adder"><label class="addbtn" for="fileIn">＋ Añadir audios</label><input id="fileIn" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" multiple hidden><span class="hint">Máximo 15 min cada uno. Se guardan solo en este dispositivo.</span></div>';
+  h += '<div class="msg' + (misErr ? " err" : "") + '" role="status">' + esc(misMsg) + "</div>";
+  if (!customs.length) h += '<div class="empty">Aún no tienes audios propios. Toca “Añadir audios” y elige archivos de tu celular.</div>';
+  customs.forEach(t => {
+    if (editingId === t.id) {
+      h += '<div style="position:relative"><div class="card" data-cat="mis"><span class="dot">' + fmt(t.rec.dur) + '</span><input class="rename" id="renameIn" maxlength="60" aria-label="Nombre del audio" value="' + esc(t.name) + '"><span style="width:50px"></span></div><div class="acts"><button class="ib warn" type="button" data-save="' + t.id + '">Guardar</button></div></div>';
+    } else {
+      h += '<div style="position:relative"><button class="card" type="button" data-id="' + t.id + '" data-cat="mis"' + (t.id === cur.id ? ' aria-current="true"' : "") + '><span class="dot">' + fmt(t.rec.dur) + "</span><span><h4>" + esc(t.name) + '</h4><div class="meta">Mis audios · una vez o en bucle con temporizador</div></span><span style="width:' + (delId === t.id ? 150 : 80) + 'px"></span></button><div class="acts"><button class="ib" type="button" data-ren="' + t.id + '" aria-label="Renombrar ' + esc(t.name) + '">✎</button>' + (delId === t.id ? '<button class="ib warn" type="button" data-del="' + t.id + '">¿Borrar?</button>' : '<button class="ib" type="button" data-del="' + t.id + '" aria-label="Borrar ' + esc(t.name) + '">🗑</button>') + "</div></div>";
+    }
+  });
+  list.innerHTML = h;
+  const inp = $("#renameIn");
+  if (inp) { inp.focus(); inp.select(); }
+}
+$("#list").addEventListener("change", (e) => {
+  if (e.target.id === "fileIn" && e.target.files.length) { const fs = Array.from(e.target.files); e.target.value = ""; addFiles(fs); }
+});
+$("#list").addEventListener("keydown", (e) => {
+  if (e.target.id !== "renameIn") return;
+  if (e.key === "Enter") commitRename(editingId);
+  if (e.key === "Escape") { editingId = null; renderList(); }
+});
+
 /* ---------- Events ---------- */
 $("#playBtn").addEventListener("click", () => { playing ? stop() : start(); });
 $("#vol").addEventListener("input", (e) => {
   volume = e.target.value / 100;
   if (ctx && master) master.gain.setTargetAtTime(volume * 0.8, ctx.currentTime, 0.1);
+  if (audioEl) audioEl.volume = volume;
 });
 document.querySelectorAll("[data-min]").forEach(b => b.addEventListener("click", () => {
   minutes = +b.dataset.min;
   document.querySelectorAll("[data-min]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-  if (playing) endAt = minutes ? performance.now() + minutes * 60000 : 0;
+  if (playing) endAt = minutes > 0 ? performance.now() + minutes * 60000 : 0;
+  if (audioEl) audioEl.loop = minutes !== -1;
   renderClock((performance.now() - startedAt) / 1000);
 }));
 $("#list").addEventListener("click", (e) => {
+  const ren = e.target.closest("[data-ren]"), del = e.target.closest("[data-del]"), sv = e.target.closest("[data-save]");
+  if (ren) { editingId = ren.dataset.ren; delId = null; renderList(); return; }
+  if (sv) { commitRename(sv.dataset.save); return; }
+  if (del) { deleteCustom(del.dataset.del); return; }
   const f = e.target.closest("[data-fav]");
   if (f) {
     const id = f.dataset.fav;
@@ -471,7 +611,7 @@ $("#themeBtn").addEventListener("click", () => {
   r.dataset.theme = dark ? "light" : "dark";
 });
 
-renderTabs(); renderStates(); renderNow(); renderStats(); setPlayUI();
+renderTabs(); renderStates(); renderNow(); renderStats(); setPlayUI(); loadCustoms();
 </script>
 </body>
 </html>
